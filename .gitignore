@@ -1,0 +1,13 @@
+/build/\n/install/\n/log/
+# ROS2 and colcon build output
+build/
+install/
+log/
+.colcon/
+*.pyc
+*.swp
+*.swo
+.vscode/
+.idea/
+*.DS_Store
+.env
