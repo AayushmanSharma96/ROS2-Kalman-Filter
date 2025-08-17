@@ -6,6 +6,7 @@ find_package(rclcpp         REQUIRED)
 find_package(sensor_msgs    REQUIRED)
 find_package(geometry_msgs  REQUIRED)
 find_package(Eigen3         REQUIRED)
+find_package(nav_msgs      REQUIRED)
 
 # ---------- library ----------
 add_library(kalman_filter_lib
@@ -47,12 +48,24 @@ target_link_libraries(EKF_ros_node
 
 ament_target_dependencies(EKF_ros_node
   rclcpp sensor_msgs geometry_msgs)
+
+# Path Publisher
+add_executable(reference_path_publisher
+  src/reference_path_publisher.cpp)
+
+target_link_libraries(reference_path_publisher
+  rclcpp::rclcpp)
+
+ament_target_dependencies(reference_path_publisher
+  rclcpp nav_msgs geometry_msgs)
+
 # ---------- install ----------
 install(TARGETS
   kalman_filter_lib
   EKF_lib
   kalman_filter_ros_node
   EKF_ros_node
+  reference_path_publisher
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME})
