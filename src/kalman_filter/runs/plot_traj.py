@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation, PillowWriter
+import sys
 
 cols = [
     'sec', 'nsec', 'frame_id', 
@@ -37,6 +38,23 @@ plt.show()
 # --- Animation Setup ---
 gt_xi = np.interp(kf['t'], gt['t'], gt['x'])
 gt_yi = np.interp(kf['t'], gt['t'], gt['y'])
+
+def quat_to_yaw(qx,qy,qz,qw):
+    return np.arctan2(2*(qw*qz + qx*qy), 1 - 2*(qy*qy + qz*qz))
+kf_theta = quat_to_yaw(kf['qx'], kf['qy'], kf['qz'], kf['qw'])
+gt_theta = quat_to_yaw(gt['qx'], gt['qy'], gt['qz'], gt['qw'])
+gt_theta_i = np.interp(kf['t'], gt['t'], gt_theta)
+
+pos_err = np.hypot(kf['x'] - gt_xi, kf['y'] - gt_yi)
+rms_pos  = np.sqrt(np.mean(pos_err**2))
+
+heading_err = np.unwrap(kf_theta - gt_theta_i)   # unwrap to avoid 2π jumps
+rms_theta = np.sqrt(np.mean(heading_err**2))
+
+print(f"RMS position error  : {rms_pos:.4f} m")
+print(f"RMS heading  error  : {rms_theta:.4f} rad  ({np.degrees(rms_theta):.2f}°)")
+
+sys.exit()
 min_x = min(kf['x'].min(), gt_xi.min()) - 1
 max_x = max(kf['x'].max(), gt_xi.max()) + 1
 min_y = min(kf['y'].min(), gt_yi.min()) - 1

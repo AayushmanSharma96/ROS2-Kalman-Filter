@@ -5,7 +5,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import Imu
 from std_msgs.msg import Float64
 import numpy as np
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Twist
 from scipy.spatial.transform import Rotation as R
 
 class CarSensorSim(Node):
@@ -23,11 +23,26 @@ class CarSensorSim(Node):
         self.a = 0.0        # Linear acceleration (m/s^2)
         self.omega = 0.1    # Angular velocity (rad/s)
 
+        # Actuator constraints
+        self.v_max = 5.0      # Maximum linear velocity (m/s)
+        self.a_max = 3.0      # Maximum linear acceleration (m/s^2)
+        self.omega_max = 2.0  # Maximum angular velocity (rad/s)
+
         self.dt = 0.02
+    
+    def cmd_cb(self, msg: Twist):
+        # Update linear acceleration and angular velocity based on Twist message
+        self.a = float(np.clip(msg.linear.x, -self.a_max, self.a_max))
+        self.omega = float(np.clip(msg.angular.z, -self.omega_max, self.omega_max))
 
     def timer_callback(self):
+
         # State update : Forward Euler
+        self.v += self.a * self.dt
+        self.v = float(np.clip(self.v, 0.0, self.v_max))
         self.theta += self.omega * self.dt
+        self.theta = float(np.clip(self.theta, -np.pi, np.pi))
+
         self.x += self.v * np.cos(self.theta) * self.dt
         self.y += self.v * np.sin(self.theta) * self.dt
 
@@ -60,7 +75,7 @@ class CarSensorSim(Node):
         self.true_pose_pub.publish(pose_msg)
 
         self.get_logger().info(
-            f"Sim State: x={self.x:.2f} y={self.y:.2f} th={self.theta:.2f} v={self.v:.2f}")
+            f"Sim State: x={self.x:.2f} y={self.y:.2f} th={self.theta:.2f} v={self.v:.2f} a={self.a:.2f} omega={self.omega:.2f}")
 
 def main():
     rclpy.init()
