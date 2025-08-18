@@ -119,7 +119,7 @@ ros2 run kalman_filter PID_controller \
 
 **Example output (Pure‑Pursuit PID)**  
 ![RViz Controller Output](src/kalman_filter/runs/Rviz_output_pursuit_pid.gif)
-Red Arrow: Pose estimate from EKF-based sensor fusion from IMU+encoder
+Red Arrow: Pose estimate from EKF-based sensor fusion from IMU+encoder  
 Blue Arrow: Ground truth pose
 
 ---
