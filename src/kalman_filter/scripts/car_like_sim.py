@@ -14,19 +14,20 @@ class CarSensorSim(Node):
         self.imu_pub = self.create_publisher(Imu, '/imu/data', 10)
         self.enc_pub = self.create_publisher(Float64, '/encoder/speed', 10)
         self.true_pose_pub = self.create_publisher(PoseStamped, '/sim/true_pose', 10)
+        self.cmd_sub = self.create_subscription(Twist, '/cmd_vel', self.cmd_cb, 10)
         self.timer = self.create_timer(0.02, self.timer_callback)  # f_sampling = 50 Hz
 
         self.x = 0.0        # x position (m)
         self.y = 0.0        # y position (m)
         self.theta = 0.0    # heading (rad)
-        self.v = 1.0        # Linear velocity (m/s)
+        self.v = 0.0        # Linear velocity (m/s)
         self.a = 0.0        # Linear acceleration (m/s^2)
-        self.omega = 0.1    # Angular velocity (rad/s)
+        self.omega = 0.0    # Angular velocity (rad/s)
 
         # Actuator constraints
-        self.v_max = 5.0      # Maximum linear velocity (m/s)
+        self.v_max = 3.0      # Maximum linear velocity (m/s)
         self.a_max = 3.0      # Maximum linear acceleration (m/s^2)
-        self.omega_max = 2.0  # Maximum angular velocity (rad/s)
+        self.omega_max = 10.0  # Maximum angular velocity (rad/s)
 
         self.dt = 0.02
     
@@ -41,7 +42,7 @@ class CarSensorSim(Node):
         self.v += self.a * self.dt
         self.v = float(np.clip(self.v, 0.0, self.v_max))
         self.theta += self.omega * self.dt
-        self.theta = float(np.clip(self.theta, -np.pi, np.pi))
+        
 
         self.x += self.v * np.cos(self.theta) * self.dt
         self.y += self.v * np.sin(self.theta) * self.dt

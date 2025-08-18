@@ -59,6 +59,15 @@ target_link_libraries(reference_path_publisher
 ament_target_dependencies(reference_path_publisher
   rclcpp nav_msgs geometry_msgs)
 
+# PID Controller
+add_executable(pid_controller
+  src/PID_controller.cpp)
+target_link_libraries(pid_controller 
+  rclcpp::rclcpp
+  kalman_filter_lib
+  Eigen3::Eigen)
+ament_target_dependencies(pid_controller
+  rclcpp nav_msgs geometry_msgs)
 # ---------- install ----------
 install(TARGETS
   kalman_filter_lib
@@ -66,12 +75,14 @@ install(TARGETS
   kalman_filter_ros_node
   EKF_ros_node
   reference_path_publisher
+  pid_controller
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME})
 
   install(PROGRAMS
   scripts/car_like_sim.py
+  runs/metrics_logger.py
   DESTINATION lib/${PROJECT_NAME})
   
 ament_package()

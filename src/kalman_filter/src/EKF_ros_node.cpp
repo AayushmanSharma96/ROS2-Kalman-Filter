@@ -11,7 +11,7 @@ using Matrix = Eigen::MatrixXd;
 class CarEKFNode : public rclcpp::Node {
 public:
     CarEKFNode()
-    : Node("car_ekf_node"), ekf_(4, 3)
+    : Node("car_ekf_node"), ekf_(4, 1)
     {
         double dt = 0.02; // f_sampling = 50 Hz
 
@@ -97,6 +97,11 @@ private:
         pose.pose.position.x = x(0);
         pose.pose.position.y = x(1);
         pose.pose.position.z = 0.0;
+
+        pose.pose.orientation.x = 0.0;
+        pose.pose.orientation.y = 0.0;
+        pose.pose.orientation.z = std::sin(x(2) * 0.5);
+        pose.pose.orientation.w = std::cos(x(2) * 0.5);
         pose_pub_->publish(pose);
 
         RCLCPP_INFO(get_logger(), "x=%.2f y=%.2f th=%.2f v=%.2f", x(0), x(1), x(2), x(3));
