@@ -1,6 +1,6 @@
 # Car-Like Robot EKF ROS2 Package
 
-This repository provides a **C++ Extended Kalman Filter (EKF)** implementation for a car-like robot in **ROS 2 (Kilted)**, along with a **Python simulator**, data logging, and post‑processing scripts for trajectory visualization and animation.
+This repository provides a **C++ Extended Kalman Filter (EKF)** for a car-like robot in **ROS 2 (Kilted)**, a **Python simulator**, a **trajectory tracker (PID/Pure‑Pursuit)**, and tools for **recording & evaluating** runs (metrics + RViz animations).
 
 ---
 
@@ -38,24 +38,24 @@ src/kalman_filter/
 
 ---
 
-## Overview
+### Estimation (EKF)
+- **State**: \([x,\ y,\ \theta,\ v]\)  
+- **Inputs**: \([a,\ \omega]\) from IMU  
+- **Measurement**: \(v\) from wheel encoder  
+- **Output**: `/kf/pose` (`geometry_msgs/PoseStamped`)
 
-This package demonstrates an EKF for 2D pose estimation of a car-like robot:
+### Trajectory Tracking (Controller)
+- **Reference path**: `/path` (`nav_msgs/Path`) from the ellipse publisher  
+- **Control**:  
+  - **Longitudinal** = acceleration command \(a\) via PI (node publishes `cmd.linear.x`)  
+  - **Lateral** = steering rate \(\omega\) via Pure‑Pursuit / LQR‑ready structure (`cmd.angular.z`)  
+- **Command topic**: `/cmd_vel` (`geometry_msgs/Twist`)  
+  - `linear.x` = **acceleration** \(a\) (m/s²)  
+  - `angular.z` = **yaw rate** \(\omega\) (rad/s)
 
-- **State vector**:  
-  \[ x, y, θ, v \]  
-  – position, heading, velocity
-- **Inputs**:  
-  \[ a, ω \]  
-  – longitudinal acceleration (IMU), yaw rate (IMU)
-- **Measurements**:  
-  \[ v \]  
-  – velocity from wheel encoder
-
-A Python script simulates the robot motion and publishes IMU and encoder data, as well as ground truth pose. The EKF node fuses these to estimate the robot’s trajectory.
+> The simulator expects **acceleration** on `cmd.linear.x` (not linear velocity).
 
 ---
-
 ## Requirements
 
 - Ubuntu 24.04 / WSL2  
@@ -73,45 +73,54 @@ A Python script simulates the robot motion and publishes IMU and encoder data, a
 
 ---
 
-## Installation & Build
-
-```bash
-# Clone and build in your ROS 2 workspace
-cd ~/ros2_ws/src
-git clone https://github.com/AayushmanSharma96/ROS2-Sensor-Fusion.git
-cd ~/ros2_ws
-colcon build --packages-select kalman_filter
-source install/setup.bash
-```
-
----
-
-## Running the Simulation & EKF
-
-### 1. Launch the Python Simulator
-
+### 1) Start the simulator
 ```bash
 ros2 run kalman_filter car_like_sim.py
 ```
+Publishes:
+- `/imu/data` (`sensor_msgs/Imu`)
+- `/encoder/speed` (`std_msgs/Float64`)
+- `/sim/true_pose` (`geometry_msgs/PoseStamped`)
 
-This node publishes:
-- `/imu/data`        → `sensor_msgs/msg/Imu`
-- `/encoder/speed`   → `std_msgs/msg/Float64`
-- `/sim/true_pose`   → `geometry_msgs/msg/PoseStamped`
-
-### 2. Launch the EKF Node
-
-In a new terminal (after sourcing):
-
+### 2) Start the EKF
 ```bash
 ros2 run kalman_filter EKF_ros_node
 ```
+Publishes:
+- `/kf/pose` (`geometry_msgs/PoseStamped`)
 
-This node subscribes to IMU and encoder, runs the EKF, and publishes:
-- `/kf/pose`        → `geometry_msgs/msg/PoseStamped`
+### 3) Publish a reference path
+```bash
+ros2 run kalman_filter reference_path_publisher
+```
+Publishes:
+- `/path` (`nav_msgs/Path`) — ellipse by default
+
+### 4) Start the controller (PID / Pure‑Pursuit)
+```bash
+ros2 run kalman_filter PID_controller \
+  --ros-args -p pose_topic:=/kf/pose -p v_ref:=1.0 -p lookahead_distance:=1.0
+```
+**Key parameters**
+- `v_ref` — target cruise speed (m/s) used by the longitudinal PI  
+- `lookahead_distance` — tracking aggressiveness (m); try 0.8–1.5  
+- `a_max`, `omega_max` — actuator saturation (match the simulator)
 
 ---
 
+## RViz Visualization
+
+**Quick setup**
+1. Open `rviz2`
+2. Set **Fixed Frame**: `map`
+3. **Add → Path**: select `/path` (reference, colored line)
+4. **Add → Pose**: select `/kf/pose` (estimator path; increase **History Length** for trail)
+5. *(Optional)* **Add → Pose**: `/sim/true_pose` (ground truth)
+
+**Example output (Pure‑Pursuit PID)**  
+![RViz Controller Output](src/kalman_filter/runs/Rviz_output_pursuit_pid.gif)
+
+---
 ## Data Logging
 
 Record both EKF and ground truth for offline analysis:
